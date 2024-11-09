@@ -1,0 +1,112 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joseph Benner Meditation Video Playlist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .video-container {
+            margin: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 640px;
+            margin: auto;
+        }
+        iframe {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9; /* Keeps aspect ratio responsive */
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>My Custom Video Playlist</h1>
+
+    <!-- Video containers; each will be created dynamically -->
+    <div id="videos"></div>
+
+    <script>
+        // Load the IFrame Player API code asynchronously.
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // Array of video data (ID, start time, end time, title)
+        const videoData = [
+        { title: 'Meditation Introduction', id: 'Kz8HLhTaLc8', start: 1024, end: 1560 },
+            { title: 'Receive Me Meditation', id: 'Kz8HLhTaLc8', start: 2024, end: 2689 },
+            { title: 'Be Still Meditation', id: 'Kz8HLhTaLc8', start: 2714, end: 3330 },
+            { title: 'Christ Consciousness Prayer', id: 'Kz8HLhTaLc8', start: 3335, end: 3518 },
+            { title: 'Prayer for Others', id: 'Kz8HLhTaLc8', start: 3518, end: 3960 },
+            { title: 'Meditation and Prayers', id: 'Kz8HLhTaLc8', start: 2024, end: 3960 },
+            { title: 'Intro and Mental Room Visualizations', id: 'Kz8HLhTaLc8', start: 1024, end: 2023 },
+            { title: 'Mental Room Visualizations', id: 'Kz8HLhTaLc8', start: 1214, end: 2023 }
+            // Add more videos as needed
+        ];
+
+        let players = [];
+
+        // Function called when API is ready
+        function onYouTubeIframeAPIReady() {
+            const videoContainer = document.getElementById('videos');
+            videoData.forEach((video, index) => {
+                // Create a title element for each video
+                const titleElement = document.createElement('h2');
+                titleElement.innerText = video.title;
+                videoContainer.appendChild(titleElement);
+
+                // Create a new div for each video player
+                const videoDiv = document.createElement('div');
+                videoDiv.className = 'video-container';
+                videoDiv.id = `player${index}`;
+                videoContainer.appendChild(videoDiv);
+
+                // Initialize each YouTube player
+                players[index] = new YT.Player(videoDiv.id, {
+                    videoId: video.id,
+                    playerVars: {
+                        'start': video.start,
+                        'end': video.end,
+                        'autoplay': 1,
+                        'controls': 1,
+                        'mute': 1  // Mute for autoplay on iOS
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': (event) => onPlayerStateChange(event, index)
+                    }
+                });
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.playVideo();
+        }
+
+        // Loop each video based on its start and end times
+        function onPlayerStateChange(event, index) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                const end = videoData[index].end;
+                setInterval(() => {
+                    if (players[index].getCurrentTime() >= end) {
+                        players[index].seekTo(videoData[index].start);
+                    }
+                }, 1000);
+            }
+        }
+    </script>
+
+</body>
+</html>

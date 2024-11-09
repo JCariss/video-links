@@ -33,11 +33,10 @@
 
     <h1>Joseph Benner Meditation Video Playlist</h1>
 
-    <!-- Video containers; each will be created dynamically -->
     <div id="videos"></div>
 
     <script>
-        // Load the IFrame Player API code asynchronously.
+        // Load the IFrame Player API code asynchronously
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -45,7 +44,7 @@
 
         // Array of video data (ID, start time, end time, title)
         const videoData = [
-        { title: 'Meditation Introduction', id: 'Kz8HLhTaLc8', start: 1024, end: 1560 },
+            { title: 'Meditation Introduction', id: 'Kz8HLhTaLc8', start: 1024, end: 1560 },
             { title: 'Receive Me Meditation', id: 'Kz8HLhTaLc8', start: 2024, end: 2689 },
             { title: 'Be Still Meditation', id: 'Kz8HLhTaLc8', start: 2714, end: 3330 },
             { title: 'Christ Consciousness Prayer', id: 'Kz8HLhTaLc8', start: 3335, end: 3518 },
@@ -53,7 +52,6 @@
             { title: 'Meditation and Prayers', id: 'Kz8HLhTaLc8', start: 2024, end: 3960 },
             { title: 'Intro and Mental Room Visualizations', id: 'Kz8HLhTaLc8', start: 1024, end: 2023 },
             { title: 'Mental Room Visualizations', id: 'Kz8HLhTaLc8', start: 1214, end: 2023 }
-            // Add more videos as needed
         ];
 
         let players = [];
@@ -79,31 +77,32 @@
                     playerVars: {
                         'start': video.start,
                         'end': video.end,
-                        'autoplay': 0,
-                        'controls': 1,
-                        'mute': 1  // Mute for autoplay on iOS
+                        'controls': 1
                     },
                     events: {
-                        'onReady': onPlayerReady,
                         'onStateChange': (event) => onPlayerStateChange(event, index)
                     }
                 });
             });
         }
 
-        function onPlayerReady(event) {
-            event.target.playVideo();
-        }
-
         // Loop each video based on its start and end times
         function onPlayerStateChange(event, index) {
-            if (event.data == YT.PlayerState.PLAYING) {
+            if (event.data === YT.PlayerState.PLAYING) {
                 const end = videoData[index].end;
-                setInterval(() => {
-                    if (players[index].getCurrentTime() >= end) {
+                const checkTime = setInterval(() => {
+                    const currentTime = players[index].getCurrentTime();
+                    if (currentTime >= end) {
                         players[index].seekTo(videoData[index].start);
                     }
-                }, 1000);
+                }, 500);
+
+                // Clear the interval when video stops or pauses
+                event.target.addEventListener('onStateChange', function(newEvent) {
+                    if (newEvent.data !== YT.PlayerState.PLAYING) {
+                        clearInterval(checkTime);
+                    }
+                });
             }
         }
     </script>

@@ -86,19 +86,26 @@
         }
 
         function onPlayerStateChange(event, index) {
-            if (event.data === YT.PlayerState.PLAYING) {
-                const end = videoData[index].end;
-                
-                const intervalID = setInterval(() => {
-                    if (players[index].getCurrentTime() >= end) {
-                        players[index].seekTo(videoData[index].start);
-                    }
-                }, 1000);
+            const player = players[index];
+            const start = videoData[index].start;
+            const end = videoData[index].end;
 
-                // Store interval ID to clear later when the video stops
-                players[index].intervalID = intervalID;
-            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
-                clearInterval(players[index].intervalID);
+            if (event.data === YT.PlayerState.PLAYING) {
+                // Continuously monitor video to loop if it reaches end time
+                player.loopInterval = setInterval(() => {
+                    if (player.getCurrentTime() >= end) {
+                        player.seekTo(start);
+                    }
+                }, 500); // Check every 500ms for smoother playback at the loop point
+            } 
+            else if (event.data === YT.PlayerState.ENDED) {
+                // If the video ends, explicitly seek to the start time and play
+                player.seekTo(start);
+                player.playVideo();
+            } 
+            else {
+                // Clear the interval when the video is paused or stopped
+                clearInterval(player.loopInterval);
             }
         }
     </script>

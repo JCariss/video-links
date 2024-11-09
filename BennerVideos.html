@@ -36,7 +36,7 @@
     <div id="videos"></div>
 
     <script>
-        // Load the IFrame Player API code asynchronously
+        // Load the IFrame Player API code asynchronously.
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -60,24 +60,23 @@
         function onYouTubeIframeAPIReady() {
             const videoContainer = document.getElementById('videos');
             videoData.forEach((video, index) => {
-                // Create a title element for each video
                 const titleElement = document.createElement('h2');
                 titleElement.innerText = video.title;
                 videoContainer.appendChild(titleElement);
 
-                // Create a new div for each video player
                 const videoDiv = document.createElement('div');
                 videoDiv.className = 'video-container';
                 videoDiv.id = `player${index}`;
                 videoContainer.appendChild(videoDiv);
 
-                // Initialize each YouTube player
                 players[index] = new YT.Player(videoDiv.id, {
                     videoId: video.id,
                     playerVars: {
                         'start': video.start,
                         'end': video.end,
-                        'controls': 1
+                        'autoplay': 0,
+                        'controls': 1,
+                        'mute': 0
                     },
                     events: {
                         'onStateChange': (event) => onPlayerStateChange(event, index)
@@ -86,23 +85,20 @@
             });
         }
 
-        // Loop each video based on its start and end times
         function onPlayerStateChange(event, index) {
             if (event.data === YT.PlayerState.PLAYING) {
                 const end = videoData[index].end;
-                const checkTime = setInterval(() => {
-                    const currentTime = players[index].getCurrentTime();
-                    if (currentTime >= end) {
+                
+                const intervalID = setInterval(() => {
+                    if (players[index].getCurrentTime() >= end) {
                         players[index].seekTo(videoData[index].start);
                     }
-                }, 500);
+                }, 1000);
 
-                // Clear the interval when video stops or pauses
-                event.target.addEventListener('onStateChange', function(newEvent) {
-                    if (newEvent.data !== YT.PlayerState.PLAYING) {
-                        clearInterval(checkTime);
-                    }
-                });
+                // Store interval ID to clear later when the video stops
+                players[index].intervalID = intervalID;
+            } else if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.ENDED) {
+                clearInterval(players[index].intervalID);
             }
         }
     </script>

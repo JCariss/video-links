@@ -1,0 +1,250 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Video Playlist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+        .video-container {
+            margin: 20px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 640px;
+            margin: auto;
+        }
+        iframe {
+            width: 100%;
+            height: 360px;
+            border: none;
+        }
+        .menu {
+            margin: 20px;
+        }
+        .menu button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+        }
+        .menu button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Custom Video Playlist</h1>
+    <div class="menu">
+        
+        <button onclick="loadPlaylist('dance')">Dance</button>
+        <button onclick="loadPlaylist('lymphatic')">Lymphatic Drainage</button>
+        <button onclick="loadPlaylist('meditation')">Meditation</button>
+        <button onclick="loadPlaylist('mini')">Mini Exercises</button>
+        <button onclick="loadPlaylist('neckExercises')">Neck Exercises</button>
+        <button onclick="loadPlaylist('neckStretches')">Neck Stretches</button>
+        <button onclick="loadPlaylist('qigong')">Qi Gong</button>
+        <button onclick="loadPlaylist('qigongAM')">Qi Gong AM</button>
+        <button onclick="loadPlaylist('restorative')">Restorative</button>
+        <button onclick="loadPlaylist('stretch')">Stretching</button>
+        <button onclick="loadPlaylist('vagus')">Vagus Nerve Exercises</button>
+        <button onclick="loadPlaylist('workouts')">Workouts</button>
+        <button onclick="loadPlaylist('yoga')">Yoga</button>
+        
+        
+    </div>
+
+    <!-- Video containers; each will be created dynamically -->
+    <div id="videos"></div>
+
+    <script>
+        // Load the IFrame Player API code asynchronously
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        let currentPlayer = null; // Keep track of the currently playing video
+        let players = []; // Array to store players for the current playlist
+
+        // Playlists data
+        const playlists = {
+
+            dance: [
+                { title: 'Havana Camila Cabello Young Thug Dance Fitness -Melody DanceFit', id: 'gQkI4hvqPCs', start: 0 },
+                { title: '9 DANCES in 10 MINUTES', id: '1GrQzJWJgVw', start: 0 },
+                { title: 'Disco 29 Simple Moves - You Should Be Dancing', id: 'PqwgCpwLZBs', start: 0 },
+                { title: 'Dance Now! | Disco Funk 1 | MWC Free Classes', id: 'cgDppkLnImI', start: 0 },
+                              
+            ],
+
+            lymphatic: [
+                { title: 'Lymphatic Massage Drainage - Dr. Alan Mandell', id: 'ViykneTyMvI', start: 158, end: 367 },
+                { title: 'Boost Collagen Naturally With Lymphatic Drainage! Dr. Mandell', id: 'HiqpnQOkrU0', start: 43 },
+            ],
+
+            meditation: [
+                { title: 'Boost Immunity with Taoist Breathing Practice', id: 'Gfkftvg2b30', start: 290, end: 708 },
+                { title: 'Powerful Sacred Geometry Activation & Meditation', id: 'JsE32CYaZVg' },
+                { title: 'Seven Mantra Vowels', id: 'oq8XZmh8J6c' },
+                { title: 'Pater Noster', id: 'SxS4IuhI4WQ', start: 130, end: 205 },
+                { title: 'Relaxation Exercise', id: '8ikvSHEaPxg', start: 821 },
+                { title: 'Pranajama Exercise', id: 'fzurcQfqNTQ', start: 2388 },
+                { title: 'How to Develop Pratyahara', id: 'rgJ0awlgQvk', start: 1391 },
+             
+            ],
+
+            mini: [
+                { title: 'Bone Marrow Cleansing: How to do❓ (Demonstration)', id: 'Jz7MNKX63sI', start: 0 },
+                { title: 'Qi Gong Breathing: 7 Minutes to calm body and mind', id: 'faCUU9nYBDc', start: 0 },
+                { title: '5 Min of These Exercises Will Replace 1 Hour Of Walking', id: 'zMfBTxbzw-s', start: 0 },               
+                { title: 'Reset Your Nervous System in 30 Seconds | Dr Alan Mandell, DC', id: 'rpHy6hzNDI4', start: 45 },
+                { title: 'Opening the spine - Qigong Exercise', id: 'i-4FOK1TOTY', start: 0 },
+                { title: '5 Min of These Exercises Will Replace 1 Hour Of Walking', id: 'zMfBTxbzw-s', start: 0 },
+                { title: 'Yuan Xiu Gang: Posture and Unlock Blockades', id: 'yRITeLNTnno', start: 0 },
+                { title: 'Yuan Xiu Gang: Open the Spine and Improve Relaxation', id: 'ZmHVLIIjDaM', start: 0 },
+              
+            ],
+            
+            neckStretches: [
+                { title: 'Morning NECK MOBILITY DRILL! Dr. Mandell', id: 'B2cLIXP3By8', start: 180, end: 377 },
+                { title: 'A 3 Minute Neck Drill That Will Change Your Life', id: 'K4dmZ5_n6uU', start: 35 },
+                { title: 'TMJ Self-Adjustment Correction! Dr Mandell', id: 'RVWPlYbONMk', start: 226, end: 616 },
+                { title: 'Neck Pain, Tinnitus, Headaches, Brain Fog! Dr. Mandell', id: 'ZNMDGSGvf3o', start: 290 },
+                { title: 'Occipital Percussion... Miracle Healing Tinnitus, Vertigo - Dr Mandell', id: 'kikuQOK5d3E', start: 190 },
+            ],
+
+            neckExercises: [
+                { title: 'ATHLEAN-X Neck Exercises', id: 'wjiZaCJ6tCA', start: 225, end: 720 },
+                { title: 'How to Build a Strong Neck | Dr. Andrew Huberman', id: 'uI-D4JTcOr4', start: 145 },
+                { title: 'Occipital Percussion... Miracle Healing Tinnitus, Vertigo - Dr Mandell', id: 'kikuQOK5d3E', start: 190 },
+                { title: 'If you do this exercise once, you stop aging forever. Muscles of eternal youth', id: 'lmOMXx8zB5s', start: 423 },
+                { title: 'Fix The Dowager’s Hump FOREVER!', id: 'QxX3Rmtmyfg', start: 236 },
+            ],
+
+            qigongAM: [
+                { title: '13 Minutes of Body Activation for the Morning with Shi Heng Yi', id: '8sJ5N9nsEmM', start: 0 },
+                { title: 'This Miracle Secret Doctors Will Never Tell You | Shi Heng Yi', id: 'XSRQB2jS3QA', start: 92 },
+                { title: 'Do This Every Morning, Your Every Cell In Your Body Will Be Fixed | Shi Heng Yi', id: 'OOu-I-QKaoM', start: 96 },
+                { title: 'This Miracle Secret Doctors Will Never Tell You | Shi Heng Yi', id: 'XSRQB2jS3QA', start: 92 },
+                { title: 'This 4 Qigong posture for Heal You Instantly | Shi Heng Yi', id: 'Ql1D5EXFN04', start: 73 },
+                { title: '8 Trigram Organ Qigong', id: 'uM9fQPg4Ue0', start: 0 },
+                { title: '8 Trigram Organ QiGong Exercises ∣ Krista Köster', id: 'oln58tpYd4k', start: 0 },
+                { title: '8 Trigram Organ QiGong ∣ Rabbit Springs', id: 'cyLG0vc2F0I', start: 263 },
+                { title: 'Relieve Back Pain: Five Animals Qi Gong from the Wudang Mountains', id: 'ImVA0PbaLfo', start: 0 },
+                { title: 'Wu Dang Ba Duan Jin Qi Gong - Good Morning Qi Gong', id: 'qZaXQHWfSx4', start: 0 },
+          
+       
+            ],
+             
+            qigong: [
+                { title: 'Introduction to Xi Sui Jing (3/4) 💮 DAILY 60 Minute Practice', id: 'TrJWchuF6Vo', start: 0 },
+                { title: 'Ba Duan Jin (Complete Form)', id: 'UpN3AcXLSSk', start: 0 },
+                { title: 'Qi Gong Practice: Zhan Zhuang routine', id: 'XFkNVA71hzI', start: 0 },
+                { title: '20 Minute Daily Qi Gong Routine with Jonas Over', id: '60CwBDP4W0I', start: 0 },
+                { title: 'Wudang Wu Xing (Five Animals) Qi Gong', id: '6CHyUCKD-RM', start: 0 },
+                { title: 'Five Animal Frolics - Bear & Tiger (Power)', id: 'v5zf4cff9jM', start: 232 },
+            ],
+             
+            restorative: [
+                { title: '#NSDR (Non-Sleep Deep Rest) with Dr. Andrew Huberman ', id: 'AKGrmY8OSHM', start: 0 },
+                { title: 'Restorative Yoga Practice for Nerve Flossing and Integrative Healing', id: 'YQYNlZ9B0oQ', start: 104 },
+                { title: 'Ulnar Nerve Flossing - Amazing Results - Ask Dr. Abelson', id: 'd85QKyWvrbI', start: 140 },
+               
+               
+            ],
+
+            stretch: [
+      
+            { title: 'Spiralling for Happy Hips | Training Fascia with Karin', id: '6HrJN3EbsYE', start: 0 },
+            { title: 'How to touch your toes... and beyond!', id: 'lBbUQors_lU', start: 24 },
+            { title: 'Beginner stretching routine!', id: 'iQc4lLYljbk', start: 26 },
+                
+            ],
+
+            vagus: [
+            { title: 'How to Reset Your Vagus Nerve...This Will Change Your Life! Dr. Mandell', id: '5XSVcWekIXY', start: 109 },
+            { title: 'Take the Ear Squeeze Challenge: Dr. Mandell', id: 'j0I_fuuZ0aI', start: 137 },
+                
+            ],
+
+            workouts: [
+            { title: 'Mark Lauren Bodyweight Mobility Rx Workout 2 ', id: '8G3HIELe7zE', start: 0 },
+            { title: 'Mobility RX | Bodyweight Workouts for Improved Flexibility', id: 'YJ1un_ULxTg', start: 0 },
+                
+            ],
+
+            yoga: [
+            { title: 'How to Reset Your Vagus Nerve...This Will Change Your Life! Dr. Mandell', id: '5XSVcWekIXY', start: 109 },
+            { title: 'Take the Ear Squeeze Challenge: Dr. Mandell', id: 'j0I_fuuZ0aI', start: 137 },
+                
+            ]
+                     
+        };
+
+        // Function called when API is ready
+        function onYouTubeIframeAPIReady() {
+            // No videos are loaded by default
+        }
+
+        // Load a specific playlist
+        function loadPlaylist(playlistName) {
+            const videoContainer = document.getElementById('videos');
+            videoContainer.innerHTML = ''; // Clear previous videos
+            players = []; // Reset players array
+
+            const playlist = playlists[playlistName];
+            playlist.forEach((video, index) => {
+                // Create a title element for each video
+                const titleElement = document.createElement('h2');
+                titleElement.innerText = video.title;
+                videoContainer.appendChild(titleElement);
+
+                // Create a new div for each video player
+                const videoDiv = document.createElement('div');
+                videoDiv.className = 'video-container';
+                videoDiv.id = `player${index}`;
+                videoContainer.appendChild(videoDiv);
+
+                // Initialize each YouTube player
+                const player = new YT.Player(videoDiv.id, {
+                    videoId: video.id,
+                    playerVars: {
+                        'start': video.start,
+                        'end': video.end,
+                        'autoplay': 0, // Ensure videos do not autoplay
+                        'controls': 1
+                    },
+                    events: {
+                        'onStateChange': (event) => onPlayerStateChange(event, player)
+                    }
+                });
+                players.push(player);
+            });
+        }
+
+        // Handle video state changes
+        function onPlayerStateChange(event, player) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                // Stop the currently playing video, if any
+                if (currentPlayer && currentPlayer !== player) {
+                    currentPlayer.pauseVideo();
+                }
+                currentPlayer = player; // Update the currently playing video
+            }
+        }
+    </script>
+
+</body>
+</html>

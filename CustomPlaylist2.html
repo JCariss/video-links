@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Loop Playlist</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; }
+    .container { max-width: 680px; margin: 20px auto; padding: 10px; }
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    iframe { width: 100%; height: 360px; border: none; }
+    button { padding: 8px 20px; margin: 4px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
+    .info { font-size: 13px; color: #666; margin: 6px 0; }
+    .playlist a { display: block; padding: 6px 0; text-decoration: none; color: #333; border-bottom: 1px solid #eee; }
+    .playlist a.active { font-weight: bold; color: #185FA5; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <div id="yt-player"></div>
+    <div id="now-playing" style="font-weight:bold;margin:8px 0;"></div>
+    <div id="time-info" class="info"></div>
+    <button onclick="prev()">Prev</button>
+    <button onclick="next()">Next</button>
+  </div>
+  <div class="card playlist" id="playlist-ui"></div>
+</div>
+<script>
+var videoData = [
+  {
+    "title": "Boost immunity — Taoist breathing",
+    "id": "Gfkftvg2b30",
+    "start": 290,
+    "end": 708
+  },
+  {
+    "title": "Seven mantra vowels",
+    "id": "oq8XZmh8J6c"
+  },
+  {
+    "title": "Pater Noster",
+    "id": "SxS4IuhI4WQ",
+    "start": 130,
+    "end": 205
+  },
+  {
+    "title": "Relaxation exercise",
+    "id": "8ikvSHEaPxg",
+    "start": 821
+  },
+  {
+    "title": "Pranayama exercise",
+    "id": "fzurcQfqNTQ",
+    "start": 2388
+  },
+  {
+    "title": "How to develop Pratyahara",
+    "id": "rgJ0awlgQvk",
+    "start": 1391
+  }
+];
+var currentIdx = 0;
+var player;
+var loopInterval;
+
+function fmtTime(s) {
+  if (s == null) return '—';
+  var m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ':' + String(sec).padStart(2,'0');
+}
+function renderPlaylist() {
+  document.getElementById('playlist-ui').innerHTML = videoData.map(function(v,i) {
+    return '<a href="#" class="'+(i===currentIdx?'active':'')+'" onclick="jump('+i+');return false;">'+v.title+' <span style="float:right;font-size:12px;color:#888">'+fmtTime(v.start)+'–'+fmtTime(v.end)+'</span></a>';
+  }).join('');
+}
+function updateNow() {
+  var v = videoData[currentIdx];
+  document.getElementById('now-playing').textContent = v.title;
+  document.getElementById('time-info').textContent = (v.start!=null||v.end!=null) ? 'Looping '+fmtTime(v.start)+' → '+fmtTime(v.end) : 'Full video';
+}
+function jump(i) {
+  currentIdx = i;
+  clearInterval(loopInterval);
+  var v = videoData[i];
+  if (player && player.loadVideoById) player.loadVideoById({videoId:v.id, startSeconds:v.start||0});
+  updateNow(); renderPlaylist();
+}
+function prev() { jump((currentIdx-1+videoData.length)%videoData.length); }
+function next() { jump((currentIdx+1)%videoData.length); }
+function onYouTubeIframeAPIReady() {
+  var v = videoData[0];
+  player = new YT.Player('yt-player', {
+    videoId: v.id,
+    playerVars: { autoplay:1, controls:1, start:v.start||0 },
+    events: { onStateChange: function(e) {
+      clearInterval(loopInterval);
+      if (e.data === YT.PlayerState.PLAYING) {
+        loopInterval = setInterval(function() {
+          var v = videoData[currentIdx];
+          if (v.end != null && player.getCurrentTime() >= v.end) player.seekTo(v.start||0, true);
+        }, 800);
+      }
+      if (e.data === YT.PlayerState.ENDED) next();
+    }}
+  });
+  updateNow(); renderPlaylist();
+}
+var tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+</script>
+</body>
+</html>

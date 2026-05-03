@@ -48,7 +48,8 @@
       background: #000; border-radius: 6px; overflow: hidden;
       aspect-ratio: 16/9; margin-bottom: 10px;
     }
-    .video-wrap iframe, .video-wrap div { width: 100%; height: 100%; border: none; display: block; }
+    .video-wrap iframe,
+    .video-wrap div { width: 100%; height: 100%; border: none; display: block; }
 
     /* Now playing */
     .now-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
@@ -68,21 +69,39 @@
     button:hover { background: #f0f0f0; }
     button.primary { background: #185FA5; color: #fff; border-color: #185FA5; }
     button.primary:hover { background: #0f4a85; }
+    button.danger { background: #fff; color: #c0392b; border-color: #e8b4b0; }
+    button.danger:hover { background: #fdf0ee; }
     button.full { width: 100%; }
-    button:disabled { opacity: 0.5; cursor: default; }
+
+    /* Save bar — fixed bottom */
+    .save-bar {
+      position: fixed; bottom: -80px; left: 0; right: 0;
+      background: #185FA5; color: #fff;
+      display: flex; align-items: center; justify-content: center; gap: 16px;
+      padding: 12px 20px; font-size: 14px; font-weight: 500;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.2);
+      transition: bottom 0.3s ease; z-index: 50;
+    }
+    .save-bar.visible { bottom: 0; }
+    .save-bar button { font-size: 13px; padding: 6px 16px; }
+    .save-bar button.discard { background: transparent; color: #fff; border-color: rgba(255,255,255,0.5); }
+    .save-bar button.discard:hover { background: rgba(255,255,255,0.15); }
+    .save-bar button.save { background: #fff; color: #185FA5; border-color: #fff; font-weight: 600; }
+    .save-bar button.save:hover { background: #e8f0fb; }
 
     /* Playlist items */
     .pitem {
       display: flex; align-items: center; gap: 10px;
-      padding: 8px 0; border-bottom: 1px solid #eee; cursor: pointer;
+      padding: 8px 0; border-bottom: 1px solid #eee;
     }
     .pitem:last-child { border-bottom: none; }
-    .pitem.cur { font-weight: 600; color: #185FA5; }
+    .pitem.cur .pitem-title { font-weight: 600; color: #185FA5; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
     .dot.on { background: #185FA5; }
-    .pitem-title { flex: 1; font-size: 14px; }
+    .pitem-title { flex: 1; font-size: 14px; cursor: pointer; }
+    .pitem-title:hover { color: #185FA5; }
     .pitem-time { font-size: 12px; color: #888; white-space: nowrap; }
-    .pitem-del { font-size: 20px; color: #bbb; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .pitem-del { font-size: 20px; color: #ccc; cursor: pointer; padding: 0 2px; line-height: 1; flex-shrink: 0; }
     .pitem-del:hover { color: #c0392b; }
 
     /* Form fields */
@@ -92,10 +111,8 @@
       width: 100%; padding: 7px 10px; border: 1px solid #ccc;
       border-radius: 6px; font-size: 13px; color: #222; background: #fff;
     }
-    input[type=text]:focus, input[type=number]:focus {
-      outline: none; border-color: #185FA5;
-    }
-    input.fetching { background: #f8f8f8; color: #888; }
+    input:focus { outline: none; border-color: #185FA5; }
+    input.fetching { background: #f8f8f8; color: #999; }
     .row { display: flex; gap: 8px; align-items: flex-end; }
     .row .field { flex: 1; margin-bottom: 0; }
     .sep { flex: 0 0 12px; text-align: center; font-size: 18px; color: #aaa; padding-bottom: 6px; }
@@ -107,15 +124,34 @@
     }
     .tip {
       font-size: 12px; color: #555; background: #f8f8f8;
-      border-radius: 6px; padding: 8px 10px; margin-bottom: 10px;
-      line-height: 1.6;
+      border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.6;
     }
-    .fetch-status {
-      font-size: 12px; color: #888; margin: 4px 0 8px;
-      min-height: 18px;
-    }
-    .fetch-status.ok { color: #1a7a3a; }
+    .fetch-status { font-size: 12px; color: #888; margin: 4px 0 8px; min-height: 18px; }
+    .fetch-status.ok  { color: #1a7a3a; }
     .fetch-status.err { color: #c0392b; }
+
+    /* Confirm dialog */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: center; justify-content: center;
+    }
+    .overlay.visible { display: flex; }
+    .dialog {
+      background: #fff; border-radius: 10px; padding: 22px 24px;
+      max-width: 340px; width: 90%; box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    }
+    .dialog p { font-size: 14px; line-height: 1.5; margin-bottom: 18px; color: #333; }
+    .dialog .btn-row { justify-content: flex-end; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #222; color: #fff; font-size: 13px; padding: 9px 18px;
+      border-radius: 20px; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s; white-space: nowrap; z-index: 200;
+    }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -153,17 +189,16 @@
       <div class="card-title">Add a video</div>
       <div class="tip">
         1. Paste a YouTube URL and click Load — the title is fetched automatically.<br>
-        2. Watch the video and note the times (shown in the YouTube progress bar).<br>
-        3. Enter start and end times — the embed jumps to your start to verify.<br>
-        4. Edit the title if needed, then click Add to playlist.
+        2. Watch the video and note the times shown in the YouTube progress bar.<br>
+        3. Type the start and end times below — the embed jumps to your start to verify.<br>
+        4. Edit the title if needed, then click Add to playlist and Save.
       </div>
-
       <div class="field">
         <div class="lbl">YouTube URL or video ID</div>
         <div class="row" style="align-items:stretch">
-          <input type="text" id="add-url" placeholder="https://youtube.com/watch?v=... or 11-char ID" style="flex:1"
-            onkeydown="if(event.key==='Enter')loadAdd()">
-          <button onclick="loadAdd()" id="load-btn" style="white-space:nowrap;align-self:stretch">Load</button>
+          <input type="text" id="add-url" placeholder="https://youtube.com/watch?v=... or 11-char ID"
+            style="flex:1" onkeydown="if(event.key==='Enter')loadAdd()">
+          <button onclick="loadAdd()" style="white-space:nowrap;align-self:stretch">Load</button>
         </div>
       </div>
 
@@ -173,52 +208,63 @@
 
       <div id="add-form" style="display:none">
         <div class="fetch-status" id="fetch-status"></div>
-
         <div class="field">
-          <div class="lbl">Title <span style="color:#888;font-weight:400">(fetched from YouTube — edit if needed)</span></div>
+          <div class="lbl">Title <span style="color:#aaa;font-weight:400">(auto-fetched — edit if needed)</span></div>
           <input type="text" id="add-title" placeholder="Fetching title...">
         </div>
-
         <div style="font-size:13px;font-weight:600;margin-bottom:6px;color:#111">
-          Loop times <span style="font-weight:400;color:#888;font-size:12px">(leave blank to play full video)</span>
+          Loop times <span style="font-weight:400;color:#aaa;font-size:12px">(leave blank to play full video)</span>
         </div>
         <div class="row">
-          <div class="field">
-            <div class="lbl">Start — min</div>
-            <input type="number" id="s-min" min="0" placeholder="0" oninput="onTimeInput()">
-          </div>
+          <div class="field"><div class="lbl">Start min</div>
+            <input type="number" id="s-min" min="0" placeholder="0" oninput="onTimeInput()"></div>
           <div class="sep">:</div>
-          <div class="field">
-            <div class="lbl">sec</div>
-            <input type="number" id="s-sec" min="0" max="59" placeholder="00" oninput="onTimeInput()">
-          </div>
-          <div style="flex:0 0 20px"></div>
-          <div class="field">
-            <div class="lbl">End — min</div>
-            <input type="number" id="e-min" min="0" placeholder="—" oninput="onTimeInput()">
-          </div>
+          <div class="field"><div class="lbl">sec</div>
+            <input type="number" id="s-sec" min="0" max="59" placeholder="00" oninput="onTimeInput()"></div>
+          <div style="flex:0 0 16px"></div>
+          <div class="field"><div class="lbl">End min</div>
+            <input type="number" id="e-min" min="0" placeholder="—" oninput="onTimeInput()"></div>
           <div class="sep">:</div>
-          <div class="field">
-            <div class="lbl">sec</div>
-            <input type="number" id="e-sec" min="0" max="59" placeholder="—" oninput="onTimeInput()">
-          </div>
+          <div class="field"><div class="lbl">sec</div>
+            <input type="number" id="e-sec" min="0" max="59" placeholder="—" oninput="onTimeInput()"></div>
         </div>
-
         <div id="time-hint" class="hint" style="display:none"></div>
         <button class="primary full" onclick="addVideo()" style="margin-top:8px">Add to playlist</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Current playlist</div>
+      <div class="card-title">Current playlist <span style="font-weight:400;color:#aaa;font-size:12px">(click × to remove)</span></div>
       <div id="edit-ui"></div>
     </div>
   </div>
 </div>
 
+<!-- Fixed save bar -->
+<div class="save-bar" id="save-bar">
+  <span>&#9679; Unsaved changes</span>
+  <button class="discard" onclick="discardChanges()">Discard</button>
+  <button class="save" onclick="savePlaylist()">Save playlist</button>
+</div>
+
+<!-- Delete confirm dialog -->
+<div class="overlay" id="confirm-overlay">
+  <div class="dialog">
+    <p id="confirm-msg"></p>
+    <div class="btn-row">
+      <button onclick="closeConfirm()">Cancel</button>
+      <button class="danger" onclick="confirmDelete()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
 <script>
-// ── Playlist data ──────────────────────────────────────────────────────────
-var pl = [
+var STORE_KEY = 'yt-loop-playlist';
+
+var DEFAULT_PL = [
   { title: 'Boost immunity — Taoist breathing', id: 'Gfkftvg2b30', start: 290,  end: 708  },
   { title: 'Seven mantra vowels',               id: 'oq8XZmh8J6c', start: null, end: null },
   { title: 'Pater Noster',                      id: 'SxS4IuhI4WQ', start: 130,  end: 205  },
@@ -227,51 +273,91 @@ var pl = [
   { title: 'How to develop Pratyahara',         id: 'rgJ0awlgQvk', start: 1391, end: null }
 ];
 
-var cur = 0, player, loopIv, addVid = null;
+function loadStored() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return DEFAULT_PL.map(function(v) { return Object.assign({}, v); });
+}
+
+var pl = loadStored();
+var savedSnapshot = JSON.stringify(pl);
+var cur = 0, player, loopIv, addVid = null, pendingDelete = -1;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(s) {
   if (s == null) return '—';
-  var m = Math.floor(s / 60), sc = Math.floor(s % 60);
-  return m + ':' + String(sc).padStart(2, '0');
+  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
 }
-function toSec(min, sec) {
-  return (parseInt(min) || 0) * 60 + (parseInt(sec) || 0);
-}
+function toSec(min, sec) { return (parseInt(min)||0)*60 + (parseInt(sec)||0); }
 function extractId(v) {
   v = v.trim();
   var m = v.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
   return m ? m[1] : (v.length === 11 ? v : null);
 }
 
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2200);
+}
+
+// ── Save / discard ─────────────────────────────────────────────────────────
+function isDirty() { return JSON.stringify(pl) !== savedSnapshot; }
+
+function updateSaveBar() {
+  document.getElementById('save-bar').classList.toggle('visible', isDirty());
+}
+
+function savePlaylist() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(pl));
+    savedSnapshot = JSON.stringify(pl);
+    updateSaveBar();
+    showToast('Playlist saved!');
+  } catch(e) {
+    alert('Could not save — localStorage may be disabled in your browser.');
+  }
+}
+
+function discardChanges() {
+  pl = loadStored();
+  savedSnapshot = JSON.stringify(pl);
+  if (cur >= pl.length) cur = 0;
+  updateSaveBar();
+  renderPl();
+  updateNow();
+  showToast('Changes discarded.');
+}
+
 // ── Tabs ───────────────────────────────────────────────────────────────────
 function sw(t) {
-  document.querySelectorAll('.tab').forEach(function(el, i) {
+  document.querySelectorAll('.tab').forEach(function(el,i) {
     el.classList.toggle('on', ['player','editor'][i] === t);
   });
   document.querySelectorAll('.panel').forEach(function(el) { el.classList.remove('on'); });
-  document.getElementById('tab-' + t).classList.add('on');
+  document.getElementById('tab-'+t).classList.add('on');
 }
 
-// ── Render playlist ────────────────────────────────────────────────────────
+// ── Render ─────────────────────────────────────────────────────────────────
 function renderPl() {
-  document.getElementById('pl-ui').innerHTML = pl.map(function(v, i) {
-    return '<div class="pitem' + (i === cur ? ' cur' : '') + '" onclick="jump(' + i + ')">'
-      + '<div class="dot' + (i === cur ? ' on' : '') + '"></div>'
-      + '<div class="pitem-title">' + v.title + '</div>'
-      + '<div class="pitem-time">' + fmt(v.start) + '–' + fmt(v.end) + '</div>'
-      + '</div>';
-  }).join('');
+  document.getElementById('pl-ui').innerHTML = pl.map(function(v,i) {
+    return '<div class="pitem'+(i===cur?' cur':'')+'">'+
+      '<div class="dot'+(i===cur?' on':'')+'"></div>'+
+      '<div class="pitem-title" onclick="jump('+i+')">'+v.title+'</div>'+
+      '<div class="pitem-time">'+fmt(v.start)+'–'+fmt(v.end)+'</div>'+
+      '<div class="pitem-del" onclick="askDelete('+i+')" title="Remove">×</div>'+
+      '</div>';
+  }).join('') || '<p style="font-size:13px;color:#888">No videos.</p>';
 
-  document.getElementById('edit-ui').innerHTML = pl.length
-    ? pl.map(function(v, i) {
-        return '<div class="pitem">'
-          + '<div class="pitem-title">' + v.title + '</div>'
-          + '<div class="pitem-time">' + fmt(v.start) + '–' + fmt(v.end) + '</div>'
-          + '<div class="pitem-del" onclick="delItem(' + i + ')" title="Remove">×</div>'
-          + '</div>';
-      }).join('')
-    : '<p style="font-size:13px;color:#888">No videos yet.</p>';
+  document.getElementById('edit-ui').innerHTML = pl.map(function(v,i) {
+    return '<div class="pitem">'+
+      '<div class="pitem-title" style="cursor:default">'+v.title+'</div>'+
+      '<div class="pitem-time">'+fmt(v.start)+'–'+fmt(v.end)+'</div>'+
+      '<div class="pitem-del" onclick="askDelete('+i+')" title="Remove">×</div>'+
+      '</div>';
+  }).join('') || '<p style="font-size:13px;color:#888">No videos yet.</p>';
 }
 
 function updateNow() {
@@ -280,47 +366,58 @@ function updateNow() {
   var has = v.start != null || v.end != null;
   document.getElementById('loop-badge').style.display = has ? '' : 'none';
   document.getElementById('now-times').textContent = has
-    ? 'Looping ' + fmt(v.start) + ' → ' + fmt(v.end)
-    : 'Playing full video';
+    ? 'Looping '+fmt(v.start)+' → '+fmt(v.end) : 'Playing full video';
+}
+
+// ── Delete with confirm ────────────────────────────────────────────────────
+function askDelete(i) {
+  pendingDelete = i;
+  document.getElementById('confirm-msg').textContent =
+    'Remove "' + pl[i].title + '" from the playlist?';
+  document.getElementById('confirm-overlay').classList.add('visible');
+}
+function closeConfirm() {
+  pendingDelete = -1;
+  document.getElementById('confirm-overlay').classList.remove('visible');
+}
+function confirmDelete() {
+  if (pendingDelete < 0) return;
+  var wasPlaying = pendingDelete === cur;
+  pl.splice(pendingDelete, 1);
+  if (cur >= pl.length) cur = Math.max(0, pl.length - 1);
+  closeConfirm();
+  renderPl(); updateNow(); updateSaveBar();
+  if (pl.length && wasPlaying && player && player.loadVideoById) {
+    var v = pl[cur];
+    player.loadVideoById({ videoId: v.id, startSeconds: v.start || 0 });
+  }
 }
 
 // ── Playback ───────────────────────────────────────────────────────────────
 function jump(i) {
   cur = i; clearInterval(loopIv);
   var v = pl[i];
-  if (player && player.loadVideoById) {
+  if (player && player.loadVideoById)
     player.loadVideoById({ videoId: v.id, startSeconds: v.start || 0 });
-  }
   updateNow(); renderPl();
-}
-
-function delItem(i) {
-  pl.splice(i, 1);
-  if (cur >= pl.length) cur = 0;
-  renderPl();
 }
 
 function onYouTubeIframeAPIReady() {
   var v = pl[cur];
   player = new YT.Player('yt-player', {
     videoId: v.id,
-    playerVars: { autoplay: 1, controls: 1, start: v.start || 0, modestbranding: 1, rel: 0 },
-    events: {
-      onStateChange: function(e) {
-        clearInterval(loopIv);
-        if (e.data === YT.PlayerState.PLAYING) {
-          loopIv = setInterval(function() {
-            var v = pl[cur];
-            if (v.end != null && player.getCurrentTime() >= v.end) {
-              player.seekTo(v.start || 0, true);
-            }
-          }, 800);
-        }
-        if (e.data === YT.PlayerState.ENDED) {
-          jump((cur + 1) % pl.length);
-        }
+    playerVars: { autoplay:1, controls:1, start: v.start||0, modestbranding:1, rel:0 },
+    events: { onStateChange: function(e) {
+      clearInterval(loopIv);
+      if (e.data === YT.PlayerState.PLAYING) {
+        loopIv = setInterval(function() {
+          var v = pl[cur];
+          if (v.end != null && player.getCurrentTime() >= v.end)
+            player.seekTo(v.start || 0, true);
+        }, 800);
       }
-    }
+      if (e.data === YT.PlayerState.ENDED) jump((cur+1) % pl.length);
+    }}
   });
   updateNow(); renderPl();
 }
@@ -331,49 +428,33 @@ document.head.appendChild(tag);
 
 // ── Editor ─────────────────────────────────────────────────────────────────
 function loadAdd() {
-  var raw = document.getElementById('add-url').value;
-  var id = extractId(raw);
-  if (!id) {
-    alert('Could not find a video ID.\nPaste a full YouTube URL or an 11-character video ID.');
-    return;
-  }
+  var id = extractId(document.getElementById('add-url').value);
+  if (!id) { alert('Could not find a video ID.\nPaste a full YouTube URL or an 11-character video ID.'); return; }
   addVid = id;
-
-  // Show embed
   document.getElementById('add-preview').style.display = '';
-  document.getElementById('add-iframe').src = 'https://www.youtube.com/embed/' + id + '?controls=1';
-
-  // Show form
+  document.getElementById('add-iframe').src = 'https://www.youtube.com/embed/'+id+'?controls=1';
   document.getElementById('add-form').style.display = '';
-  ['s-min','s-sec','e-min','e-sec'].forEach(function(fid) {
-    document.getElementById(fid).value = '';
-  });
+  ['s-min','s-sec','e-min','e-sec'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('time-hint').style.display = 'none';
 
-  // Fetch title via oEmbed
   var titleEl = document.getElementById('add-title');
   var statusEl = document.getElementById('fetch-status');
-  titleEl.value = '';
-  titleEl.placeholder = 'Fetching title...';
+  titleEl.value = ''; titleEl.placeholder = 'Fetching title...';
   titleEl.classList.add('fetching');
   statusEl.textContent = 'Fetching title from YouTube...';
   statusEl.className = 'fetch-status';
 
-  fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=' + id + '&format=json')
-    .then(function(r) {
-      if (!r.ok) throw new Error('Not found');
-      return r.json();
-    })
-    .then(function(data) {
-      titleEl.value = data.title || '';
+  fetch('https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v='+id+'&format=json')
+    .then(function(r){ if(!r.ok) throw new Error(); return r.json(); })
+    .then(function(d){
+      titleEl.value = d.title || '';
       titleEl.placeholder = 'Enter a title';
       titleEl.classList.remove('fetching');
       statusEl.textContent = 'Title fetched — edit if needed.';
       statusEl.className = 'fetch-status ok';
     })
-    .catch(function() {
-      titleEl.value = '';
-      titleEl.placeholder = 'Enter a title manually';
+    .catch(function(){
+      titleEl.value = ''; titleEl.placeholder = 'Enter a title manually';
       titleEl.classList.remove('fetching');
       statusEl.textContent = 'Could not fetch title — please enter it manually.';
       statusEl.className = 'fetch-status err';
@@ -381,24 +462,18 @@ function loadAdd() {
 }
 
 function onTimeInput() {
-  var sm = document.getElementById('s-min').value;
-  var ss = document.getElementById('s-sec').value;
-  var em = document.getElementById('e-min').value;
-  var es = document.getElementById('e-sec').value;
-  var hasS = sm !== '' || ss !== '';
-  var hasE = em !== '' || es !== '';
-  var hint = document.getElementById('time-hint');
-  if (!hasS && !hasE) { hint.style.display = 'none'; return; }
-  var parts = [];
+  var sm=document.getElementById('s-min').value, ss=document.getElementById('s-sec').value;
+  var em=document.getElementById('e-min').value, es=document.getElementById('e-sec').value;
+  var hasS=sm!==''||ss!=='', hasE=em!==''||es!=='';
+  var hint=document.getElementById('time-hint');
+  if (!hasS && !hasE) { hint.style.display='none'; return; }
+  var parts=[];
   if (hasS) {
-    var startSec = toSec(sm, ss);
-    parts.push('Start: ' + fmt(startSec));
-    if (addVid) {
-      document.getElementById('add-iframe').src =
-        'https://www.youtube.com/embed/' + addVid + '?controls=1&start=' + startSec;
-    }
+    var sec=toSec(sm,ss); parts.push('Start: '+fmt(sec));
+    if (addVid) document.getElementById('add-iframe').src=
+      'https://www.youtube.com/embed/'+addVid+'?controls=1&start='+sec;
   }
-  if (hasE) parts.push('End: ' + fmt(toSec(em, es)));
+  if (hasE) parts.push('End: '+fmt(toSec(em,es)));
   hint.textContent = parts.join('   ·   ') + '  — embed jumped to start time';
   hint.style.display = '';
 }
@@ -406,22 +481,23 @@ function onTimeInput() {
 function addVideo() {
   if (!addVid) { alert('Load a video first.'); return; }
   var title = document.getElementById('add-title').value.trim() || 'Untitled video';
-  var sm = document.getElementById('s-min').value, ss = document.getElementById('s-sec').value;
-  var em = document.getElementById('e-min').value, es = document.getElementById('e-sec').value;
-  var start = (sm !== '' || ss !== '') ? toSec(sm, ss) : null;
-  var end   = (em !== '' || es !== '') ? toSec(em, es) : null;
-  pl.push({ title: title, id: addVid, start: start, end: end });
-  // Reset form
+  var sm=document.getElementById('s-min').value, ss=document.getElementById('s-sec').value;
+  var em=document.getElementById('e-min').value, es=document.getElementById('e-sec').value;
+  pl.push({
+    title: title, id: addVid,
+    start: (sm!==''||ss!=='') ? toSec(sm,ss) : null,
+    end:   (em!==''||es!=='') ? toSec(em,es) : null
+  });
   document.getElementById('add-url').value = '';
   document.getElementById('add-preview').style.display = 'none';
   document.getElementById('add-form').style.display = 'none';
   document.getElementById('fetch-status').textContent = '';
   addVid = null;
-  renderPl(); sw('player');
+  renderPl(); updateSaveBar(); sw('player');
 }
 
 // Init
-renderPl(); updateNow();
+renderPl(); updateNow(); updateSaveBar();
 </script>
 </body>
 </html>

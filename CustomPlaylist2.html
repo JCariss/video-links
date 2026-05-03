@@ -5,29 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Loop Playlist</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; text-align: center; }
-    .container { max-width: 680px; margin: 20px auto; padding: 10px; }
-    .card { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-    iframe { width: 100%; height: 360px; border: none; }
-    button { padding: 8px 20px; margin: 4px; border: 1px solid #ccc; border-radius: 6px; background: #fff; cursor: pointer; }
-    .info { font-size: 13px; color: #666; margin: 6px 0; }
-    .playlist a { display: block; padding: 6px 0; text-decoration: none; color: #333; border-bottom: 1px solid #eee; }
-    .playlist a.active { font-weight: bold; color: #185FA5; }
+    body{font-family:Arial,sans-serif;background:#f4f4f4;text-align:center}
+    .wrap{max-width:680px;margin:20px auto}
+    .card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px;margin-bottom:12px}
+    iframe{width:100%;height:360px;border:none}
+    button{padding:8px 20px;margin:4px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer}
+    .info{font-size:13px;color:#666;margin:6px 0}
+    .pitem{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;cursor:pointer;font-size:14px}
+    .pitem:last-child{border-bottom:none}
+    .pitem.cur{font-weight:bold;color:#185FA5}
   </style>
 </head>
 <body>
-<div class="container">
+<div class="wrap">
   <div class="card">
     <div id="yt-player"></div>
-    <div id="now-playing" style="font-weight:bold;margin:8px 0;"></div>
-    <div id="time-info" class="info"></div>
-    <button onclick="prev()">Prev</button>
-    <button onclick="next()">Next</button>
+    <div id="now-title" style="font-weight:bold;margin:8px 0"></div>
+    <div id="now-times" class="info"></div>
+    <button onclick="jump((cur-1+pl.length)%pl.length)">Prev</button>
+    <button onclick="jump((cur+1)%pl.length)">Next</button>
   </div>
-  <div class="card playlist" id="playlist-ui"></div>
+  <div class="card" id="pl-ui"></div>
 </div>
 <script>
-var videoData = [
+var pl=[
   {
     "title": "Boost immunity — Taoist breathing",
     "id": "Gfkftvg2b30",
@@ -60,54 +61,44 @@ var videoData = [
     "start": 1391
   }
 ];
-var currentIdx = 0;
-var player;
-var loopInterval;
-
-function fmtTime(s) {
-  if (s == null) return '—';
-  var m = Math.floor(s/60), sec = Math.floor(s%60);
-  return m + ':' + String(sec).padStart(2,'0');
+var cur=0,player,loopIv;
+function fmt(s){if(s==null)return'—';var m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+String(sc).padStart(2,'0')}
+function jump(i){
+  cur=i;clearInterval(loopIv);
+  var v=pl[i];
+  if(player&&player.loadVideoById)player.loadVideoById({videoId:v.id,startSeconds:v.start||0});
+  updateNow();renderPl();
 }
-function renderPlaylist() {
-  document.getElementById('playlist-ui').innerHTML = videoData.map(function(v,i) {
-    return '<a href="#" class="'+(i===currentIdx?'active':'')+'" onclick="jump('+i+');return false;">'+v.title+' <span style="float:right;font-size:12px;color:#888">'+fmtTime(v.start)+'–'+fmtTime(v.end)+'</span></a>';
+function updateNow(){
+  var v=pl[cur];
+  document.getElementById('now-title').textContent=v.title;
+  document.getElementById('now-times').textContent=(v.start!=null||v.end!=null)?'Looping '+fmt(v.start)+' → '+fmt(v.end):'Playing full video';
+}
+function renderPl(){
+  document.getElementById('pl-ui').innerHTML=pl.map(function(v,i){
+    return'<div class="pitem'+(i===cur?' cur':'')+'" onclick="jump('+i+')">'+ v.title+'<span style="font-size:12px;color:#888">'+fmt(v.start)+'–'+fmt(v.end)+'</span></div>';
   }).join('');
 }
-function updateNow() {
-  var v = videoData[currentIdx];
-  document.getElementById('now-playing').textContent = v.title;
-  document.getElementById('time-info').textContent = (v.start!=null||v.end!=null) ? 'Looping '+fmtTime(v.start)+' → '+fmtTime(v.end) : 'Full video';
-}
-function jump(i) {
-  currentIdx = i;
-  clearInterval(loopInterval);
-  var v = videoData[i];
-  if (player && player.loadVideoById) player.loadVideoById({videoId:v.id, startSeconds:v.start||0});
-  updateNow(); renderPlaylist();
-}
-function prev() { jump((currentIdx-1+videoData.length)%videoData.length); }
-function next() { jump((currentIdx+1)%videoData.length); }
-function onYouTubeIframeAPIReady() {
-  var v = videoData[0];
-  player = new YT.Player('yt-player', {
-    videoId: v.id,
-    playerVars: { autoplay:1, controls:1, start:v.start||0 },
-    events: { onStateChange: function(e) {
-      clearInterval(loopInterval);
-      if (e.data === YT.PlayerState.PLAYING) {
-        loopInterval = setInterval(function() {
-          var v = videoData[currentIdx];
-          if (v.end != null && player.getCurrentTime() >= v.end) player.seekTo(v.start||0, true);
-        }, 800);
+function onYouTubeIframeAPIReady(){
+  var v=pl[0];
+  player=new YT.Player('yt-player',{
+    videoId:v.id,
+    playerVars:{autoplay:1,controls:1,start:v.start||0},
+    events:{onStateChange:function(e){
+      clearInterval(loopIv);
+      if(e.data===YT.PlayerState.PLAYING){
+        loopIv=setInterval(function(){
+          var v=pl[cur];
+          if(v.end!=null&&player.getCurrentTime()>=v.end)player.seekTo(v.start||0,true);
+        },800);
       }
-      if (e.data === YT.PlayerState.ENDED) next();
+      if(e.data===YT.PlayerState.ENDED)jump((cur+1)%pl.length);
     }}
   });
-  updateNow(); renderPlaylist();
+  updateNow();renderPl();
 }
-var tag = document.createElement('script');
-tag.src = 'https://www.youtube.com/iframe_api';
+var tag=document.createElement('script');
+tag.src='https://www.youtube.com/iframe_api';
 document.head.appendChild(tag);
 </script>
 </body>
